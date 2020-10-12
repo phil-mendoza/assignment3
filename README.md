@@ -1,19 +1,14 @@
 # Assignment 3
-Clustering
+### Social Networks
 
-In the attached files you will find instructions for assignment 3. Please **fork** this repository to your own Github account and then clone it in RStudio.
+In Assignment 3 we will again be looking at some interaction data from students commenting on a class video. The file "comment-data.csv" shows which student responded to which student in an online video platform.
 
-Good luck!
+We will be using the "igraph" package to visualize the relationships between students as a network. You can read more about igraph [here](http://igraph.org/r/).
 
-# Assignment 3
-### Cluster Analysis
+The instructions to Assignment 3 are in the Assignment 3.Rmd file. Assignments are structured in three parts, in the first part you can just follow along with the code, in the second part you will need to apply the code, and in the third part is completely freestyle and you are expected to apply your new knowledge in a new way. 
 
-In Assignment 3 we will be looking at some class motivation data collected from this class two years ago. You will be expected to cluster and visualize the clusters.
+**Please complete as much as you can by midnight EDT, 10/21/20**
 
-The instructions to Assignment 3 are in the Assignment 3.rmd file. Assignments are structured in three parts, in the first part you can just follow along with the code, in the second part you will need to apply the code and in the third part is completely freestyle, apply your new knowledge in a new way. 
-
-**Please complete as much as you can by 5:00pm, 11/05/19**
-
-Once you have finished, commit, push and pull your assignment back to the main branch.
+Once you have finished, commit, push and pull your assignment back to the main branch. Include the .Rmd file and the .html file generated from your .Rmd file.
 
 Good luck!
