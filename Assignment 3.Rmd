@@ -1,155 +1,109 @@
----
-title: "Assignment 3: K Means Clustering"
----
+# Assignment 3 - Social Network Analysis
 
-In this assignment we will be applying the K-means clustering algorithm we looked at in class. At the following link you can find a description of K-means:
+## Part I
+Start by installing the "igraph" package. Once you have installed igraph, load the package.
 
-https://www.cs.uic.edu/~wilkinson/Applets/cluster.html
-
+Now upload the data file "comment-data.csv" as a data frame called "D1". Each row represents a comment from one student to another so the first line shows that student "28" commented on the comment of student "21". It also shows the gender of both students and the student's main elective field of study ("major"").
 
 ```{r}
-library()
+D1 <- read.csv("comment-data.csv", header = TRUE)
 ```
 
-Now, upload the file "Class_Motivation.csv" from the Assignment 3 Repository as a data frame called "K1""
+Before you proceed, you will need to change the data type of the student id variable. Since it is a number R will automatically think it is an integer and code it as such (look at the list of variables by clicking on the data frame arrow in the Data pane. Here you will see the letters "int"" next to the stid variable, that stands for integer). However, in this case we are treating the variable as a category, there is no numeric meaning in the variable. So we need to change the format to be a category, what R calls a "factor". We can do this with the following code:
+
 ```{r}
-
-K1 <- read.csv(...)
-
+D1$comment.to <- as.factor(D1$comment.to)
+D1$comment.from <- as.factor(D1$comment.from)
 ```
 
-This file contains the self-reported motivation scores for a class over five weeks. We are going to look for patterns in motivation over this time and sort people into clusters based on those patterns.
+igraph requires data to be in a particular structure. There are several structures that it can use but we will be using a combination of an "edge list" and a "vertex list". As you might imagine the edge list contains a list of all the relationships between students and any characteristics of those edges that we might be interested in. There are two essential variables in the edge list a "from" variable and a "to" variable that descibe the relationships between vertices (a disciplinary action is given "from" and teacher "to" a student). While the vertex list contains all the characteristics of those vertices, in our case gender and major.
 
-But before we do that, we will need to manipulate the data frame into a structure that can be analyzed by our clustering algorithm.
+So let's convert our data into an edge list!
 
-The algorithm will treat each row as a value belonging to a person, so we need to remove the id variable.
+First we will isolate the variables that are of interest: comment.from and comment.to
 
 ```{r}
+library(dplyr)
 
-K2 <- 
-
+D2 <- select(D1, comment.to, comment.from) #select() chooses the columns
 ```
 
-It is important to think about the meaning of missing values when clustering. We could treat them as having meaning or we could remove those people who have them. Neither option is ideal. What problems do you foresee if we recode or remove these values? Write your answers below:
-
-
-
-We will remove people with missing values for this assignment, but keep in mind the issues that you have identified.
-
+Since our data represnts every time a student makes a comment there are multiple rows when the same student comments more than once on another student's video. We want to collapse these into a single row, with a variable that shows how many times a teacher-student pair appears.
 
 ```{r}
 
-K3 <- na.omit(K2) #This command create a data frame with only those people with no missing values. It "omits" all rows with missing values, also known as a "listwise deletion". EG - It runs down the list deleting rows as it goes.
+EDGE <- count(D2, comment.to, comment.from)
+
+names(EDGE) <- c("from", "to", "count")
 
 ```
 
-Another pre-processing step used in K-means is to standardize the values so that they have the same range. We do this because we want to treat each week as equally important - if we do not standardise then the week with the largest range will have the greatest impact on which clusters are formed. We standardise the values by using the "scale()" command.
+EDGE is your edge list. Now we need to make the vertex list, a list of all the students and their characteristics in our network.
 
 ```{r}
+#First we will separate the commenters from our commentees
+V.FROM <- select(D1, comment.from, from.gender, from.major)
 
-K3 <- 
+#Now we will separate the commentees from our commenters
+V.TO <- select(D1, comment.to, to.gender, to.major)
 
-```
+#Make sure that the student and teacher data frames have the same variables names
+names(V.FROM) <- c("id", "gender", "major")
+names(V.TO) <- c("id", "gender", "major")
 
+#Bind the two data frames together (you will get a warning because the teacher data frame has 5 types of id (A,B,C,D,E) and the student has 25 (1-30), this isn't a problem)
+VERTEX <- bind_rows(V.FROM, V.TO)
 
-Now we will run the K-means clustering algorithm we talked about in class. 
-1) The algorithm starts by randomly choosing some starting values 
-2) Associates all observations near to those values with them
-3) Calculates the mean of those clusters of values
-4) Selects the observation closest to the mean of the cluster
-5) Re-associates all observations closest to this observation
-6) Continues this process until the clusters are no longer changing
-
-Notice that in this case we have 5 variables and in class we only had 2. It is impossible to vizualise this process with 5 variables.
-
-Also, we need to choose the number of clusters we think are in the data. We will start with 2.
-
-```{r}
-
-fit <- 
-
-#We have created an object called "fit" that contains all the details of our clustering including which observations belong to each cluster.
-
-#We can access the list of clusters by typing "fit$cluster", the top row corresponds to the original order the rows were in. Notice we have deleted some rows.
-
-
-
-#We can also attach these clusters to the original dataframe by using the "data.frame" command to create a new data frame called K4.
-
-K4
-
-#Have a look at the K4 dataframe. Lets change the names of the variables to make it more convenient with the names() command.
+#Remove all the repeats so that we just have a list of each student and their characteristics
+VERTEX <- unique(VERTEX)
 
 
 ```
 
-Now we need to visualize the clusters we have created. To do so we want to play with the structure of our data. What would be most useful would be if we could visualize average motivation by cluster, by week. To do this we will need to convert our data from wide to long format. Remember your old friends tidyr and dplyr!
-
-First lets use tidyr to convert from wide to long format.
-```{r}
-
-K5 <- 
-```
-
-Now lets use dplyr to average our motivation values by week and by cluster.
+Now we have both a Vertex and Edge list it is time to plot our graph!
 
 ```{r}
+#Load the igraph package
 
-K6 <- 
+library(igraph)
 
-```
+#First we will make an object that contains the graph information using our two dataframes EDGE and VERTEX. Notice that we have made "directed = TRUE" - our graph is directed since comments are being given from a teacher to a student.
 
-Now it's time to do some visualization: 
+g <- graph.data.frame(EDGE, directed=TRUE, vertices=VERTEX)
 
-https://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html
+#Now we can plot our graph using the force directed graphing technique - our old friend Fruchertman-Reingold!
 
-And you can see the range of available graphics in ggplot here:
+plot(g,layout=layout.fruchterman.reingold)
 
-http://ggplot2.tidyverse.org/reference/index.html
+#There are many ways to change the attributes of the graph to represent different characteristics of the newtork. For example, we can color the nodes according to gender.
 
-We are going to create a line plot similar to the one created in the school dropout paper we looked at in class (Bowers, 2010). It will have motivation on the Y-axis and weeks on the X-axis. To do this we will want our weeks variables to be treated as a number, but because it was created from a variable name it is currently being treated as a character variable. You can see this if you click on the arrow on the left of K6 in the Data pane. Week is designated by "chr". To convert it to numeric, we use the as.numeric command. 
+plot(g,layout=layout.fruchterman.reingold, vertex.color=VERTEX$gender)
 
-Likewise, since "cluster" is not numeric but rather a categorical label we want to convert it from an "integer" format to a "factor" format so that ggplot does not treat it as a number. We can do this with the as.factor() command.
+#We can change the thickness of the edge according to the number of times a particular teacher has sent a particular student to the principal.
 
-```{r}
+plot(g,layout=layout.fruchterman.reingold, vertex.color=VERTEX$gender, edge.width=EDGE$count)
 
-K6$week <- 
+````
 
-K6$cluster <- 
+## Part II
 
-```
+In Part II your task is to [look up](http://igraph.org/r/) in the igraph documentation and modify the graph above so that:
 
-Now we can plot our line plot using the ggplot command, "ggplot()".
+* The arrow size is smaller
+* The vertices are colored according to major
+* The vertices according to the number of comments they have recieved 
+* Ensure that sizing allows for an unobstructed view of these features
 
-- The first argument in a ggplot is the dataframe we are using: K6
-- Next is what is called an aesthetic (aes), the aesthetic tells ggplot which variables to use and how to use them. Here we are using the variables "week" and "avg" on the x and y axes and we are going color these variables using the "cluster" variable
-- Then we are going to tell ggplot which type of plot we want to use by specifiying a "geom()", in this case a line plot: geom_line()
-- Finally we are going to clean up our axes labels: xlab("Week") & ylab("Average Motivation")
+## Part III
 
-```{r}
+Now practice with data from our class. Please create a **person-network** with the data set hudk4050-classes.csv. To create this network you will need to create a person-class matrix using the tidyr functions and then create a person-person matrix using `t()`. You will then need to plot a matrix rather than a data frame using igraph.
 
+Once you have done this, also [look up](http://igraph.org/r/) how to generate the following network metrics:
 
-```
+* Betweeness centrality and dregree centrality. **Who is the most central person in the network according to these two metrics? Write a sentence or two that describes your interpretation of these metrics**
 
-What patterns do you see in the plot?
+* Color the nodes according to interest. Are there any clusters of interest that correspond to clusters in the network? Write a sentence or two describing your interpetation.
 
+### To Submit Your Assignment
 
-
-It would be useful to determine how many people are in each cluster. We can do this easily with dplyr.
-
-```{r}
-K7 <- 
-```
-
-Look at the number of people in each cluster, now repeat this process for 3 rather than 2 clusters. Which cluster grouping do you think is more informative? Write your answer below:
-
-##Part II
-
-Using the data collected for Assignment 2 (which classes students were in), cluster the students, then redraw the graph of the class but color the students according the cluster they are in.
-
-##Part III
-
-In class activity 6 you clustered students in the class by the answers to a questionaire. Create a visualization that shows the overlap between these clusters and the clusters generated in part II.
-
-## Please render your code as an .html file using knitr and Pull Resquest both your .Rmd file and .html files to the Assignment 3 repository.
-
+Please submit your assignment by first "knitting" your RMarkdown document into an html file and then comit, push and pull request both the RMarkdown file and the html file.
